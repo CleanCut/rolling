@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use bevy::{prelude::*, render::texture::ImageSettings};
 use bevy_rapier2d::prelude::*;
 use leafwing_input_manager::prelude::*;
@@ -37,7 +39,20 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Spawn the players
     spawn_player(0, Vec2::new(-100.0, 0.0), &mut commands, &asset_server);
     spawn_player(1, Vec2::new(100.0, 0.0), &mut commands, &asset_server);
-    spawn_piece(Vec2::new(150.0, 150.0), &mut commands, &asset_server);
+    spawn_piece(Vec2::new(150.0, 150.0), 0.0, &mut commands, &asset_server);
+    spawn_piece(
+        Vec2::new(-350.0, 50.0),
+        PI * 0.5,
+        &mut commands,
+        &asset_server,
+    );
+    spawn_piece(Vec2::new(-150.0, -200.0), PI, &mut commands, &asset_server);
+    spawn_piece(
+        Vec2::new(200.0, -50.0),
+        PI * 1.5,
+        &mut commands,
+        &asset_server,
+    );
 }
 
 fn spawn_player(
@@ -79,11 +94,20 @@ fn spawn_player(
         .insert(Player);
 }
 
-fn spawn_piece(location: Vec2, commands: &mut Commands, asset_server: &Res<AssetServer>) {
+fn spawn_piece(
+    location: Vec2,
+    rotation: f32,
+    commands: &mut Commands,
+    asset_server: &Res<AssetServer>,
+) {
     commands
         .spawn_bundle(SpriteBundle {
             texture: asset_server.load("block_corner.png"),
-            transform: Transform::from_translation(location.extend(0.0)),
+            transform: Transform {
+                translation: location.extend(0.0),
+                rotation: Quat::from_rotation_z(rotation),
+                ..Default::default()
+            },
             ..Default::default()
         })
         .insert(Collider::triangle(
