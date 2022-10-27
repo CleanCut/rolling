@@ -21,11 +21,14 @@ fn main() {
         .add_plugin(InputManagerPlugin::<Action>::default())
         .add_startup_system(setup)
         .add_system(movement)
+        .add_system(win_condition)
         .run();
 }
 
 #[derive(Component)]
-struct Player;
+struct Player {
+    id: usize,
+}
 
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug)]
 enum Action {
@@ -39,6 +42,19 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     // Spawn the players
     spawn_player(0, Vec2::new(-100.0, 0.0), &mut commands, &asset_server);
     spawn_player(1, Vec2::new(100.0, 0.0), &mut commands, &asset_server);
+
+    // Spawn the goal
+    commands
+        .spawn_bundle(SpriteBundle {
+            transform: Transform::from_translation(Vec3::new(450.0, -300.0, 0.0)),
+            texture: asset_server.load("hole_large_end.png"),
+            ..Default::default()
+        })
+        .insert(Collider::ball(8.0))
+        .insert(Sensor)
+        .insert(Goal);
+
+    // Spawn the pieces
     spawn_piece(Vec2::new(150.0, 150.0), 0.0, &mut commands, &asset_server);
     spawn_piece(
         Vec2::new(-350.0, 50.0),
@@ -56,12 +72,12 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 
 fn spawn_player(
-    player: usize,
+    id: usize,
     location: Vec2,
     commands: &mut Commands,
     asset_server: &Res<AssetServer>,
 ) {
-    let image = if player == 0 {
+    let image = if id == 0 {
         "ball_blue_large.png"
     } else {
         "ball_red_large.png"
@@ -70,7 +86,7 @@ fn spawn_player(
     commands
         .spawn_bundle(SpriteBundle {
             texture: asset_server.load(image),
-            transform: Transform::from_translation(location.extend(0.0)),
+            transform: Transform::from_translation(location.extend(1.0)),
             ..Default::default()
         })
         .insert(Collider::ball(32.0))
@@ -88,10 +104,10 @@ fn spawn_player(
             action_state: ActionState::default(),
             input_map: InputMap::default()
                 .insert(DualAxis::left_stick(), Action::Move)
-                .set_gamepad(Gamepad { id: player })
+                .set_gamepad(Gamepad { id })
                 .build(),
         })
-        .insert(Player);
+        .insert(Player { id });
 }
 
 fn spawn_piece(
@@ -128,5 +144,21 @@ fn movement(
     for (action_state, mut external_force) in query.iter_mut() {
         let axis_vector = action_state.clamped_axis_pair(Action::Move).unwrap().xy();
         external_force.force = axis_vector * MOVE_FORCE * time.delta_seconds();
+    }
+}
+
+#[derive(Component)]
+struct Goal;
+
+fn win_condition(
+    rapier_context: Res<RapierContext>,
+    player_query: Query<(Entity, &Player)>,
+    goal_query: Query<Entity, With<Goal>>,
+) {
+    let goal_entity = goal_query.single();
+    for (player_entity, player) in player_query.iter() {
+        if rapier_context.intersection_pair(goal_entity, player_entity) == Some(true) {
+            println!("Player {} wins!", player.id);
+        }
     }
 }
