@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 bevy = "0.8.1"
 bevy_rapier2d = "0.17.0"
+leafwing-input-manager = "0.6.1"
