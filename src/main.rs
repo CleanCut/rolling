@@ -22,6 +22,7 @@ fn main() {
         .add_startup_system(setup)
         .add_system(movement)
         .add_system(win_condition)
+        .add_system(collision_sounds)
         .run();
 }
 
@@ -47,7 +48,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands
         .spawn_bundle(SpriteBundle {
             transform: Transform::from_translation(Vec3::new(450.0, -300.0, 0.0)),
-            texture: asset_server.load("hole_large_end.png"),
+            texture: asset_server.load("rolling/hole_large_end.png"),
             ..Default::default()
         })
         .insert(Collider::ball(8.0))
@@ -78,9 +79,9 @@ fn spawn_player(
     asset_server: &Res<AssetServer>,
 ) {
     let image = if id == 0 {
-        "ball_blue_large.png"
+        "rolling/ball_blue_large.png"
     } else {
-        "ball_red_large.png"
+        "rolling/ball_red_large.png"
     };
     // Spawn the player
     commands
@@ -100,6 +101,7 @@ fn spawn_player(
             linear_damping: 0.6,
             angular_damping: 5.0,
         })
+        .insert(ActiveEvents::COLLISION_EVENTS)
         .insert_bundle(InputManagerBundle::<Action> {
             action_state: ActionState::default(),
             input_map: InputMap::default()
@@ -118,7 +120,7 @@ fn spawn_piece(
 ) {
     commands
         .spawn_bundle(SpriteBundle {
-            texture: asset_server.load("block_corner.png"),
+            texture: asset_server.load("rolling/block_corner.png"),
             transform: Transform {
                 translation: location.extend(0.0),
                 rotation: Quat::from_rotation_z(rotation),
@@ -160,5 +162,22 @@ fn win_condition(
         if rapier_context.intersection_pair(goal_entity, player_entity) == Some(true) {
             println!("Player {} wins!", player.id);
         }
+    }
+}
+
+fn collision_sounds(
+    rapier_context: Res<RapierContext>,
+    audio: Res<Audio>,
+    asset_server: Res<AssetServer>,
+) {
+    let mut just_collided = false;
+    for pair in rapier_context.contact_pairs() {
+        if pair.has_any_active_contacts() {
+            just_collided = true;
+        }
+    }
+    if just_collided {
+        let sound = asset_server.load("impact/impactGlass_heavy_002.ogg");
+        audio.play(sound);
     }
 }
