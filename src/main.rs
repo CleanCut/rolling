@@ -99,7 +99,7 @@ fn spawn_player(
         .insert(Restitution::coefficient(1.0))
         .insert(Damping {
             linear_damping: 0.6,
-            angular_damping: 5.0,
+            angular_damping: 0.3,
         })
         .insert(ActiveEvents::COLLISION_EVENTS)
         .insert_bundle(InputManagerBundle::<Action> {
@@ -128,10 +128,11 @@ fn spawn_piece(
             },
             ..Default::default()
         })
-        .insert(Collider::triangle(
-            Vec2::new(-32.0, 32.0),
-            Vec2::new(32.0, -32.0),
-            Vec2::new(-32.0, -32.0),
+        .insert(Collider::round_triangle(
+            Vec2::new(-23.0, -23.0),
+            Vec2::new(-23.0, 23.0),
+            Vec2::new(23.0, -23.0),
+            0.05,
         ))
         .insert(RigidBody::Fixed)
         .insert(Restitution::coefficient(1.0));
